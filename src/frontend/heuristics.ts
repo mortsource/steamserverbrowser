@@ -157,7 +157,7 @@ function rebuildDynamicFilterCache(): void {
 
 
 // HEURISTICS ————————————————————————————————————————————————————————————
-const COUNTER_STRIKE_APP_IDS = [10, 240, 4465480]
+const COUNTER_STRIKE_APP_IDS = [10, 80, 240, 730, 4465480] // CS, CS:CZ, CS:S, CS2, CS:GO Legacy
 const isCyrillic = (s: string): boolean => /[\p{Script=Cyrillic}]/u.test(s);
 const hasEmoji = (s: string): boolean => /\p{Extended_Pictographic}/u.test(s);
 
@@ -186,6 +186,7 @@ export function isGoodServer(tab: string, server: GameServer, geo: any, stats: a
     if (tab === 'favorites')
         return true;
 
+    // This is intentional, fuck Russia and Belarus.
     if (geo?.countryCode === 'RU' || geo?.countryCode === 'BY') {
         stats.count_geographic++;
         return false;

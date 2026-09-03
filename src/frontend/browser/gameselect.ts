@@ -6,6 +6,7 @@ import { browserState, onDocumentReady, liveTabStates, getActiveTabId, rafThrott
 const toDataUri = (base64: string): string => `data:image/png;base64,${base64}`;
 
 export const CSGO_APP_ID = 4465480;
+const ICON_CS2 = toDataUri(constSysfsExpr('730.png', { basePath: '../assets/icons', encoding: 'base64' }).content);
 const ICON_CSGO = toDataUri(constSysfsExpr('4465480.png', { basePath: '../assets/icons', encoding: 'base64' }).content);
 const ICON_CSS = toDataUri(constSysfsExpr('240.png', { basePath: '../assets/icons', encoding: 'base64' }).content);
 const ICON_TF2 = toDataUri(constSysfsExpr('440.png', { basePath: '../assets/icons', encoding: 'base64' }).content);
@@ -20,6 +21,7 @@ interface GameEntry {
 }
 
 const POPULAR_GAMES: (GameEntry & { icon: string })[] = [
+    { appid: 730, label: 'CS2', icon: ICON_CS2 },
     { appid: CSGO_APP_ID, label: 'CS:GO', icon: ICON_CSGO },
     { appid: 240, label: 'CS:Source', icon: ICON_CSS },
     { appid: 440, label: 'Team Fortress 2', icon: ICON_TF2 },
@@ -32,7 +34,6 @@ const MORE_LABEL_DEFAULT = 'More';
 const DROPDOWN_GAMES: GameEntry[] = [
     { appid: 10, label: 'Counter-Strike' },
     { appid: 80, label: 'Counter-Strike: Condition Zero' },
-    { appid: 730, label: 'Counter-Strike 2' },
     { appid: 30, label: 'Day of Defeat' },
     { appid: 300, label: 'Day of Defeat: Source' },
     { appid: 70, label: 'Half-Life' },

@@ -79,7 +79,7 @@ function ensureStyles(doc: Document): void {
 
         /* Layout ———————————————————————————————————————————— */
         .sbplus-ev-active [role="table"] { visibility: hidden !important; pointer-events: none !important; }
-        .sbplus-ev-container { display: none; position: absolute; z-index: 50; background: #1b1b1b; -webkit-app-region: no-drag; }
+        .sbplus-ev-container { display: none; position: absolute; z-index: 1; background: #1b1b1b; -webkit-app-region: no-drag; }
         .sbplus-ev-active .sbplus-ev-container { display: flex; }
         .sbplus-ev-listcol {
             width: ${LIST_WIDTH}px; flex-shrink: 0; display: flex; flex-direction: column;
