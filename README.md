@@ -5,32 +5,29 @@
     <img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/mortsource/steamserverbrowser/total">
 </p>
 
-Server Browser+ is a plugin for the native Steam game server browser. This project requires [Millennium aka SteamBrew](https://steambrew.app), a framework for Steam. It is used commonly for themes but also plugins, install is quick and simple. Report any issues or suggest improvements, this is in active development.
+**Server Browser+** is a plugin for the native Steam game server browser. 
 
 ## World Map
-<img src="./docs/readme_preview1.png" width="1000" style="padding-bottom: 30px">  
-
 Splits the native browser into two panes: a virtualized server list with images and a live Leaflet map, synced together. Servers are clustered by region and expand when zoomed. Filters and context menus behave as expected. Quick access tabs for popular games and removed dead games.
 
 ## Spam Filtering
-<img src="./docs/readme_preview2.png" width="1000" style="padding-bottom: 30px">  
-
-
-Individually toggleable filters made to catch different types of master server abuse within the Counter-Strike franchise. Filters sit between the callback to the server browser and add virtually zero overhead by using compiled RegEx patterns, subnet masks and GeoLite MMDB. Our blocklist boasts a **<0.01% false positive rate** across the franchise, the other filters serve mainly as backups.
+This project was initially started due to Valve ignoring large spam networks flooding Counter-Strike even after being notified in various [GitHub issues](https://github.com/ValveSoftware/csgo-osx-linux/issues/2689). Filter logic sits between the callback to the server browser and add virtually zero overhead.
 
 | Filter | Example |
 |---|---|
-| **MASTER BLOCKLIST*** | `*.*.*.*/16, /sgaming.ru/i` |
-| **CYRILLIC** | `спам-сервер` |
+| **REMOTE BLOCKLIST*** | `*.*.*.*/24, /sgaming.ru/i` |
 | **PLAYER SPOOFING** | `255/255` | 
 | **UNUSUAL PORT**| `x.x.x.x:5000` |
-| **EMOJIS** *off by default* | `🏆🏆🏆` | 
+| **CYRILLIC** | `спам-сервер` |
+| **EMOJIS** *off by default* | `🏆🏆🏆` |
 
 *Updated automatically on startup or on-demand in settings
 
 ## Install
 > [!WARNING]
 > If you used the beta of this project, **pureBrowser**, make sure to delete it from your plugins to ensure it doesn't conflict
+
+This project requires [Millennium aka SteamBrew](https://steambrew.app), a framework for Steam. It is used commonly for themes but also plugins, install is quick and simple. 
 
 1. Go to [Millennium (SteamBrew)](https://steambrew.app), download and install.
 <img src="./docs/readme_install1.png" width="500" style="padding-bottom: 30px">  
