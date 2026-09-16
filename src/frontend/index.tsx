@@ -1,18 +1,19 @@
 import React from 'react';
 import { definePlugin, Millennium, IconsModule, GameServer } from '@steambrew/client';
 import { logToConsole, initGeoDatabase, updatePluginData } from './shared';
-import { processServer, requestCompleted, resetCounters } from './heuristics';
+import { processServer, requestCompleted, resetCounters } from './heuristics-debug';
 
 import { ServerPlayerCounter, VerifiedFilter, ViewMode } from './browser/elements'
 import { SettingsModal } from './browser/settings';
-import { injectEnhancedView } from './browser/view';
-import { injectGameSelect } from './browser/gameselect';
+import { EnhancedView } from './browser/view';
+import { GameSelect } from './browser/gameselect';
 import { browserState } from './browser/ui_shared';
 
 // DOM RESOLUTION ————————————————————————————————————————————————————————————
 const RESOLVE_DOC_POLL_MS = 500;
 const RESOLVE_DOC_MAX_ATTEMPTS = 10;
 
+// *TODO Does not handle the Steam in-game overlay server browser currently
 function resolveDocument(ctx: any): Document | null {
     const candidates: any[] = [
         ctx,
@@ -45,12 +46,11 @@ function tryInjectWhenReady(doc: Document): void {
             logToConsole('Injecting into Game Servers window', 'Info');
 
             new ServerPlayerCounter().setup(doc);
-            VerifiedFilter(doc);
+            GameSelect(doc);
             ViewMode(doc);
+            EnhancedView(doc);
             SettingsModal(doc);
-
-            injectEnhancedView(doc);
-            injectGameSelect(doc);
+            VerifiedFilter(doc);
             return;
         }
 

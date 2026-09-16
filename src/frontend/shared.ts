@@ -4,6 +4,7 @@ import { constSysfsExpr } from '@steambrew/client';
 
 // HELPERS ————————————————————————————————————————————————————————————
 export const serversMap = new Map<string, any>();
+export const VERIFIED_NAME_MARKER = '​';
 
 export function logToConsole(message: string, type: 'Info' | 'Warn' | 'Error' = 'Info') {
     let LOG_STYLES = {
@@ -42,18 +43,8 @@ export function logToConsole(message: string, type: 'Info' | 'Warn' | 'Error' = 
 
 
 // PLUGIN DATA ————————————————————————————————————————————————————————————
-const PLUGIN_MANIFEST: { version: string } = JSON.parse(constSysfsExpr('plugin.json', { basePath: '..', encoding: 'utf8' }).content);
-const PLUGIN_VERSION = PLUGIN_MANIFEST.version;
-const STORAGE_KEY = 'sbplus_dynamic_filters';
-export const VERIFIED_NAME_MARKER = '​';
-
-export let NEW_VERSION_AVAILABLE = false;
-let verifiedSetCache: Set<string> | null = null;
-
-const STEAMID64_BASE = '76561197960265728'; // base SteamID64
-
 function isValidSteamId64(id: any): id is string {
-    return typeof id === 'string' && id !== '' && id !== STEAMID64_BASE;
+    return typeof id === 'string' && id !== '' && id !== '76561197960265728';
 }
 
 function getSteamId64(): Promise<string | null> {
@@ -72,24 +63,33 @@ function getSteamId64(): Promise<string | null> {
     });
 }
 
+const PLUGIN_MANIFEST: { version: string } = JSON.parse(constSysfsExpr('plugin.json', { basePath: '..', encoding: 'utf8' }).content);
+const PLUGIN_VERSION = PLUGIN_MANIFEST.version;
+export let NEW_VERSION_AVAILABLE = false;
+
+const STORAGE_KEY = 'sbplus_data';
+let verifiedSetCache: Set<string> | null = null;
+
 export async function updatePluginData(): Promise<string> {
     const steamId = await getSteamId64();
     if (!steamId) return 'Could not determine SteamID64';
 
     try {
-        const res = await fetch(`https://purecsgo.com/api/plugin/data/${encodeURIComponent(steamId)}`, {
+        const res = await fetch(`https://purecsgo.com/api/plugin?steamid=${encodeURIComponent(steamId)}&version=${encodeURIComponent(PLUGIN_VERSION)}&_=${Date.now()}`, {
             headers: { 'Content-Type': 'application/json' },
+            cache: 'no-store',
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
+        console.log(data);
         if (!data?.success || !data.rows) throw new Error('Malformed API response');
         const rows = data.rows;
 
         if (rows.version && rows.version !== PLUGIN_VERSION) NEW_VERSION_AVAILABLE = true;
 
-        const stored = loadDynamicFilters();
-        if (stored?.timestamp != null && rows.timestamp <= stored.timestamp) {
+        const stored = loadRemoteFilters();
+        if (stored?.timestamp != null && rows.timestamp == stored.timestamp) {
             return 'Up-to-date';
         }
 
@@ -106,7 +106,7 @@ export async function updatePluginData(): Promise<string> {
     }
 }
 
-export function loadDynamicFilters(): any {
+export function loadRemoteFilters(): any {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         return raw ? JSON.parse(raw) : null;
@@ -115,8 +115,8 @@ export function loadDynamicFilters(): any {
     }
 }
 
-export function isDynamicVerified(ip: string, port: number): boolean {
-    if (!verifiedSetCache) verifiedSetCache = new Set(loadDynamicFilters()?.verifiedIps ?? []);
+export function isRemoteVerified(ip: string, port: number): boolean {
+    if (!verifiedSetCache) verifiedSetCache = new Set(loadRemoteFilters()?.verifiedIps ?? []);
     return verifiedSetCache.has(`${ip}:${port}`);
 }
 
@@ -147,7 +147,16 @@ export function initGeoDatabase(): Promise<void> {
     return loadPromise;
 }
 
-export function lookupGeo(ip: string): any | null {
+export interface GeoRecord {
+    countryCode: string;
+    countryName: string;
+    cityName: string | null;
+    subdivisionName: string | null;
+    latitude: number | null;
+    longitude: number | null;
+}
+
+export function lookupGeo(ip: string): GeoRecord | null {
     if (!reader) return null;
     try {
         const record = reader.get(ip);

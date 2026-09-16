@@ -1,5 +1,5 @@
 import { findModuleExport, constSysfsExpr } from '@steambrew/client';
-import { logToConsole, isDynamicVerified, VERIFIED_NAME_MARKER, NEW_VERSION_AVAILABLE } from '../shared';
+import { logToConsole, isRemoteVerified, VERIFIED_NAME_MARKER, NEW_VERSION_AVAILABLE } from '../shared';
 import { browserState, onDocumentReady, liveTabStates, debounce, rafThrottle } from './ui_shared';
 import { refreshEnhancedView } from './view';
 
@@ -101,7 +101,7 @@ function filterLogic(): void {
         liveTabStates.add(this);
         flush.call(this);
         if (!browserState.verifiedOnly) return;
-        this.filtered_servers = this.filtered_servers.filter((s: any) => isDynamicVerified(s.ip, s.port));
+        this.filtered_servers = this.filtered_servers.filter((s: any) => isRemoteVerified(s.ip, s.port));
         this.Modified();
     };
 
@@ -257,7 +257,7 @@ const MODES: { mode: ViewMode; icon: string; label: string }[] = [
     { mode: 'enhanced', icon: constSysfsExpr('split-view-16.svg', { basePath: '../../node_modules/@primer/octicons/build/svg', encoding: 'utf8' }).content, label: 'Enhanced' },
 ];
 
-const VIEW_MODE_KEY = 'plugin_BrowserPlus_viewmode';
+const VIEW_MODE_KEY = 'sbplus_viewmode';
 const initializedDocs = new WeakSet<Document>();
 
 let toggleLoggedMissing = new Set<string>();

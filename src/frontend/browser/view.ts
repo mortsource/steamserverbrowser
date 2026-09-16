@@ -2,9 +2,8 @@ import { constSysfsExpr } from '@steambrew/client';
 import * as L from 'leaflet';
 import 'leaflet.markercluster';
 import { logToConsole, serversMap } from '../shared';
-import { browserState, onDocumentReady, onMapTileConfigChanged, buildBadges, buildPingBars, buildPlayerBar, playersLine, escapeHtml, attachThumbFallback, getFlagSvg, getNativeFilteredKeys, getNativeServer, getActiveTabId, rafThrottle } from './ui_shared';
+import { browserState, onDocumentReady, onMapTileConfigChanged, buildBadges, buildPingBars, buildPlayerBar, playersLine, escapeHtml, attachThumbFallback, attachRowThumbFallback, getFlagSvg, getNativeFilteredKeys, getNativeServer, getActiveTabId, rafThrottle } from './ui_shared';
 import { getMapTileConfig } from './settings';
-import { CSGO_APP_ID } from './gameselect';
 
 // CONFIGURATION ————————————————————————————————————————————————————————————
 const leafletCss = constSysfsExpr('leaflet.css', { basePath: '../../node_modules/leaflet/dist', encoding: 'utf8' });
@@ -13,8 +12,8 @@ const ICON_GLOBE = constSysfsExpr('globe-16.svg', { basePath: '../../node_module
 const SORT_ICON_DESC = '<svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 3l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const SORT_ICON_ASC = '<svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 7l4-4 4 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const LIST_ROW_HEIGHT = 78, LIST_OVERSCAN_PX = LIST_ROW_HEIGHT * 12, LIST_WIDTH = 300, SELECT_ZOOM = 13;
-const AD_IMAGE_URL = 'https://purecsgo.com/assets/dynamic/images/elements/plugin-ad.png';
+const LIST_ROW_HEIGHT = 82, LIST_OVERSCAN_PX = LIST_ROW_HEIGHT * 12, LIST_WIDTH = 300, SELECT_ZOOM = 13;
+const AD_IMAGE_URL = 'https://purecsgo.com/assets/remote/images/elements/plugin-ad.png';
 
 const WORLD_BOUNDS = L.latLngBounds([-85, -180], [85, 180]);
 const DEFAULT_CENTER: L.LatLngExpression = [20, 0];
@@ -108,19 +107,22 @@ function ensureStyles(doc: Document): void {
 
         /* Server card — shared by list rows and map tooltips ——— */
         .sbplus-ev-row {
-            display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+            display: flex; align-items: center; gap: 10px; padding: 10px 14px;
             cursor: pointer; box-shadow: inset 0 -1px 0 rgba(255,255,255,0.07);
             position: absolute; left: 0; right: 0; box-sizing: border-box;
-            overflow: hidden; background: #000 center / cover no-repeat;
+            overflow: hidden; background: #17181a center / cover no-repeat;
+        }
+        .sbplus-ev-row.sbplus-row-thumb-empty {
+            background-image: repeating-linear-gradient(45deg, #1c1d1f, #1c1d1f 8px, #222325 8px, #222325 16px);
         }
         .sbplus-ev-row::before {
             content: ''; position: absolute; inset: 0; pointer-events: none;
-            background: linear-gradient(90deg, rgba(10,12,15,0.94) 0%, rgba(10,12,15,0.84) 50%, rgba(10,12,15,0.66) 100%);
+            background: linear-gradient(90deg, rgba(10,12,15,0.95) 0%, rgba(10,12,15,0.90) 50%, rgba(10,12,15,0.78) 100%);
             transition: background 120ms ease;
         }
-        .sbplus-ev-row:hover::before { background: linear-gradient(90deg, rgba(12,15,19,0.72) 0%, rgba(12,15,19,0.48) 50%, rgba(12,15,19,0.20) 100%); }
+        .sbplus-ev-row:hover::before { background: linear-gradient(90deg, rgba(12,15,19,0.76) 0%, rgba(12,15,19,0.56) 50%, rgba(12,15,19,0.32) 100%); }
         .sbplus-ev-row.selected { box-shadow: inset 4px 0 0 #cccccc, inset 0 -1px 0 rgba(255,255,255,0.07); }
-        .sbplus-ev-row.selected::before { background: linear-gradient(90deg, rgba(14,18,24,0.50) 0%, rgba(14,18,24,0.24) 45%, rgba(14,18,24,0.04) 100%); }
+        .sbplus-ev-row.selected::before { background: linear-gradient(90deg, rgba(14,18,24,0.55) 0%, rgba(14,18,24,0.32) 45%, rgba(14,18,24,0.12) 100%); }
         .sbplus-ev-row > * { position: relative; z-index: 1; }
         .sbplus-ev-row .sbplus-ev-title,
         .sbplus-ev-row .sbplus-ev-sub,
@@ -136,7 +138,7 @@ function ensureStyles(doc: Document): void {
             color: #fff; opacity: 1;
             text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.55);
         }
-        .sbplus-ev-meta, .sbplus-ev-tooltip-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+        .sbplus-ev-meta, .sbplus-ev-tooltip-body { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
         .sbplus-ev-tooltip-thumb {
             flex-shrink: 0; border-radius: 3px; object-fit: cover; display: block;
             background: #222; opacity: 0; transition: opacity 120ms ease;
@@ -149,17 +151,17 @@ function ensureStyles(doc: Document): void {
         }
         .sbplus-badge { display: inline-flex; align-items: center; margin-right: 5px; vertical-align: middle; flex-shrink: 0; }
         .sbplus-ev-title, .sbplus-ev-tooltip-title {
-            font-weight: 600; font-size: 13px; text-transform: uppercase;
+            font-weight: 600; font-size: 13px; letter-spacing: 0.2px; text-transform: uppercase;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .sbplus-ev-sub, .sbplus-ev-tooltip-sub {
-            font-size: 12px; opacity: 0.72;
+            font-size: 12px; opacity: 0.82;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        .sbplus-ev-stats, .sbplus-ev-tooltip-stats { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
-        .sbplus-ev-stats { opacity: 0.85; }
+        .sbplus-ev-stats, .sbplus-ev-tooltip-stats { display: flex; align-items: center; gap: 12px; margin-top: 3px; }
+        .sbplus-ev-stats { opacity: 0.92; }
         .sbplus-ev-stats > span, .sbplus-ev-tooltip-stats > span { display: flex; align-items: center; gap: 5px; font-size: 12px; }
-        .sbplus-ev-ping-stat { min-width: 84px; }
+        .sbplus-ev-ping-stat { min-width: 86px; }
         .sbplus-ev-flag { display: inline-block; width: 16px; height: 12px; border-radius: 2px; overflow: hidden; flex-shrink: 0; }
         .sbplus-ev-flag svg { width: 100%; height: 100%; display: block; }
 
@@ -473,10 +475,9 @@ function syncMarkers(doc: Document): void {
 // VIRTUAL LIST ——————————————————————————————————————————————————————————————
 function buildRowHTML(server: any, key: string, index: number): string {
     const { map, ping, players, maxPlayers, botPlayers, flagSvg } = serverStats(server);
-    const mapArt = `./serverbrowserplus/images/maps/${server.appid}/${encodeURIComponent(map)}.jpg`;
 
     return `
-        <div class="sbplus-ev-row${key === selectedKey ? ' selected' : ''}" data-server-key="${escapeHtml(key)}" style="top:${index * LIST_ROW_HEIGHT}px;height:${LIST_ROW_HEIGHT}px;background-image:url('${mapArt}')">
+        <div class="sbplus-ev-row${key === selectedKey ? ' selected' : ''}" data-server-key="${escapeHtml(key)}" style="top:${index * LIST_ROW_HEIGHT}px;height:${LIST_ROW_HEIGHT}px">
             <div class="sbplus-ev-meta">
                 <span class="sbplus-ev-title">${escapeHtml(map)}</span>
                 <span class="sbplus-ev-sub">${buildBadges(server)}${escapeHtml(String(server.name ?? ''))}</span>
@@ -517,6 +518,9 @@ function updateVisibleRows(doc: Document): void {
         const el = tmp.firstElementChild as HTMLElement;
         spacerEl.appendChild(el);
         renderedRows.set(index, { el, key });
+
+        const map = server.map ?? 'unknown';
+        attachRowThumbFallback(el, `./serverbrowserplus/images/maps/${server.appid}/${encodeURIComponent(map)}.jpg`);
     }
 }
 
@@ -772,7 +776,7 @@ function updateSortButton(): void {
 
 function updateAdVisibility(doc: Document): void {
     if (!adImgEl) return;
-    const shouldShow = browserState.currentAppId === CSGO_APP_ID && getActiveTabId(doc) === 'internet';
+    const shouldShow = browserState.currentAppId === 4465480 && getActiveTabId(doc) === 'internet';
     if (!shouldShow) {
         adImgEl.style.display = 'none';
         return;
@@ -921,7 +925,7 @@ function createEnhancedViewDom(doc: Document, container: HTMLElement): void {
     renderedRows.clear();
 }
 
-export function injectEnhancedView(doc: Document): void {
+export function EnhancedView(doc: Document): void {
     if (rootEl && rootEl.ownerDocument !== doc) {
         logToConsole('Enhanced View: new document detected, rebuilding view', 'Info');
         teardownEnhancedView();
