@@ -5,12 +5,13 @@ import { escapeHtml, notifyMapTileConfigChanged, onDocumentReady, debounce } fro
 // CONFIGURATION ————————————————————————————————————————
 const FILTERS: Array<{ key: string; label: string; description: string }> = [
     { key: 'filter_blocklist', label: 'Blocklist', description: "Block servers/hostnames from the maintained blocklist" },
-    { key: 'filter_emoji', label: 'Emoji', description: 'Block servers with emoji in the name' },
+    { key: 'filter_player_spoof', label: 'Player Spoof', description: 'Block servers reporting more than 64 players/slots (engine limit)' },
+    { key: 'filter_port_range', label: 'Port Range', description: 'Block servers outside the 27000-27999 range used by real CS dedicated servers' },
     { key: 'filter_cyrillic', label: 'Cyrillic', description: 'Block servers with Cyrillic characters in the name' },
-    { key: 'filter_player_spoof', label: 'Player Spoof', description: 'Block servers reporting more than 64 players/slots (engine limit)' }
+    { key: 'filter_emoji', label: 'Emoji', description: 'Block servers with emoji in the name' }
 ];
 
-export const CONFIG_KEY = 'plugin_BrowserPlus_config';
+export const CONFIG_KEY = 'sbplus_config';
 
 export const MAP_TILE_PROVIDERS: Record<string, { label: string; url: string; attribution: string; maxZoom: number; needsApiKey: boolean }> = {
     arcgis: {
@@ -32,9 +33,10 @@ const DEFAULT_MAP_TILE_PROVIDER = 'arcgis';
 
 const DEFAULTS = {
     filter_blocklist: true,
-    filter_emoji: true,
-    filter_cyrillic: true,
     filter_player_spoof: true,
+    filter_port_range: true,
+    filter_cyrillic: true,
+    filter_emoji: false, // let user decide
     map_tile_provider: DEFAULT_MAP_TILE_PROVIDER,
     cartocdn_api_key: ''
 };
@@ -94,8 +96,8 @@ const ICON_CHECK = `<svg viewBox="0 0 12 12" fill="none"><path d="M2 6.2l2.6 2.6
 const ROW_EXTRAS: Record<string, string> = {
     filter_blocklist: `
         <span class="sbplus-settings-row-extra">
-            <span class="sbplus-settings-row-status" id="sbplus-dynamic-status"></span>
-            <button type="button" class="sbplus-settings-row-action" id="sbplus-dynamic-update">Update</button>
+            <span class="sbplus-settings-row-status" id="sbplus-remote-status"></span>
+            <button type="button" class="sbplus-settings-row-action" id="sbplus-remote-update">Update</button>
         </span>`,
 };
 
@@ -260,7 +262,7 @@ function buildModal(doc: Document): HTMLElement {
             </div>
         </div>
     `;
-    
+
     const q = <T extends Element>(sel: string) => overlay.querySelector(sel) as T;
     q<HTMLElement>('.sbplus-settings-panel').addEventListener('click', (e) => e.stopPropagation());
     q<HTMLElement>('.sbplus-settings-close').addEventListener('click', () => closeSettingsModal());
@@ -305,15 +307,15 @@ function buildModal(doc: Document): HTMLElement {
         scheduleMapTileConfigChanged();
     });
 
-    const dynamicStatus = q<HTMLElement>('#sbplus-dynamic-status');
-    const dynamicUpdateBtn = q<HTMLButtonElement>('#sbplus-dynamic-update');
-    dynamicUpdateBtn.addEventListener('click', async () => {
-        dynamicUpdateBtn.disabled = true;
-        dynamicUpdateBtn.textContent = 'Updating…';
+    const remoteStatus = q<HTMLElement>('#sbplus-remote-status');
+    const remoteUpdateBtn = q<HTMLButtonElement>('#sbplus-remote-update');
+    remoteUpdateBtn.addEventListener('click', async () => {
+        remoteUpdateBtn.disabled = true;
+        remoteUpdateBtn.textContent = 'Updating…';
         const result = await updatePluginData();
-        dynamicStatus.textContent = result;
-        dynamicUpdateBtn.disabled = false;
-        dynamicUpdateBtn.textContent = 'Update';
+        remoteStatus.textContent = result;
+        remoteUpdateBtn.disabled = false;
+        remoteUpdateBtn.textContent = 'Update';
     });
 
     return overlay;

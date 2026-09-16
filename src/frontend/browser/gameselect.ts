@@ -5,7 +5,6 @@ import { browserState, onDocumentReady, liveTabStates, getActiveTabId, rafThrott
 // CONFIGURATION ————————————————————————————————————————————————————————————
 const toDataUri = (base64: string): string => `data:image/png;base64,${base64}`;
 
-export const CSGO_APP_ID = 4465480;
 const ICON_CS2 = toDataUri(constSysfsExpr('730.png', { basePath: '../assets/icons', encoding: 'base64' }).content);
 const ICON_CSGO = toDataUri(constSysfsExpr('4465480.png', { basePath: '../assets/icons', encoding: 'base64' }).content);
 const ICON_CSS = toDataUri(constSysfsExpr('240.png', { basePath: '../assets/icons', encoding: 'base64' }).content);
@@ -22,7 +21,7 @@ interface GameEntry {
 
 const POPULAR_GAMES: (GameEntry & { icon: string })[] = [
     { appid: 730, label: 'CS2', icon: ICON_CS2 },
-    { appid: CSGO_APP_ID, label: 'CS:GO', icon: ICON_CSGO },
+    { appid: 4465480, label: 'CS:GO', icon: ICON_CSGO },
     { appid: 240, label: 'CS:Source', icon: ICON_CSS },
     { appid: 440, label: 'Team Fortress 2', icon: ICON_TF2 },
     { appid: 282440, label: 'Quake Live', icon: ICON_QUAKE },
@@ -262,7 +261,7 @@ function reflow(doc: Document): void {
 
 
 // CORE ——————————————————————————————————————————————————————————————
-export function injectGameSelect(doc: Document): void {
+export function GameSelect(doc: Document): void {
     ensureGameSelectStyles(doc);
 
     const tryInsert = () => {

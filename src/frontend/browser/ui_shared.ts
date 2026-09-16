@@ -168,6 +168,25 @@ export function attachThumbFallback(img: HTMLImageElement): void {
     };
 }
 
+// Same fallback behavior as attachThumbFallback, but for elements that show
+// the map art as a CSS background-image (e.g. list rows) instead of an <img>.
+export function attachRowThumbFallback(el: HTMLElement, url: string): void {
+    if (badThumbUrls.has(url)) {
+        el.classList.add('sbplus-row-thumb-empty');
+        return;
+    }
+    const probe = el.ownerDocument.createElement('img');
+    probe.onload = () => {
+        el.style.backgroundImage = `url('${url}')`;
+        el.classList.add('sbplus-row-thumb-loaded');
+    };
+    probe.onerror = () => {
+        badThumbUrls.add(url);
+        el.classList.add('sbplus-row-thumb-empty');
+    };
+    probe.src = url;
+}
+
 
 
 // FLAG-ICONS ————————————————————————————————————————————————————————————
