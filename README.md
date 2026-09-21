@@ -10,12 +10,15 @@
 ## The Problem
 Valve has repeatedly ignored issue reports about spam servers flooding the browser for more than 6 years. The spam spans all Counter-Strike games and originates from Russian supernets. Various community members have taken to making entire websites to avoid this.
 
-https://github.com/ValveSoftware/csgo-osx-linux/issues/2540
-https://github.com/ValveSoftware/csgo-osx-linux/issues/2689
-https://github.com/ValveSoftware/csgo-osx-linux/issues/2767
-https://github.com/ValveSoftware/csgo-osx-linux/issues/3074
-https://github.com/ValveSoftware/csgo-osx-linux/issues/3810
-https://github.com/valvesoftware/source-1-games/issues/5101
+[#2540](https://github.com/ValveSoftware/csgo-osx-linux/issues/2540)
+[#2689](https://github.com/ValveSoftware/csgo-osx-linux/issues/2689)
+[#2735](https://github.com/ValveSoftware/csgo-osx-linux/issues/2735)
+[#2767](https://github.com/ValveSoftware/csgo-osx-linux/issues/2767)
+[#3074](https://github.com/ValveSoftware/csgo-osx-linux/issues/3074)
+[#3093](https://github.com/ValveSoftware/csgo-osx-linux/issues/3093)
+[#3094](https://github.com/ValveSoftware/csgo-osx-linux/issues/3094)
+[#3810](https://github.com/ValveSoftware/csgo-osx-linux/issues/3810)
+[#5101](https://github.com/valvesoftware/source-1-games/issues/5101)
 
 ## The Solution
 Implemented filter logic directly into the callback to the server browser. Spam processing adds virtually zero overhead by using compiled RegEx, CIDR subnets and Geolite MMDB. These filters are *heuristic* meaning they cannot ensure 100% accuracy. 
