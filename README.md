@@ -1,31 +1,44 @@
-# Server Browser+ for Steam
+# Server Browser Plus for Steam
 
 <p align="center">
     <img alt="GitHub Release" src="https://img.shields.io/github/v/release/mortsource/steamserverbrowser">
     <img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/mortsource/steamserverbrowser/total">
 </p>
 
-**Server Browser+** is a plugin for the native Steam game server browser. 
+<img src="./docs/readme_preview.png">
 
-## World Map
-Splits the native browser into two panes: a virtualized server list with images and a live Leaflet map, synced together. Servers are clustered by region and expand when zoomed. Filters and context menus behave as expected. Quick access tabs for popular games and removed dead games.
+## The Problem
+Valve has repeatedly ignored issue reports about spam servers flooding the browser for more than 6 years. The spam spans all Counter-Strike games and originates from Russian supernets. Various community members have taken to making entire websites to avoid this.
 
-## Spam Filtering
-This project was initially started due to Valve ignoring large spam networks flooding Counter-Strike even after being notified in various [GitHub issues](https://github.com/ValveSoftware/csgo-osx-linux/issues/2689). Filter logic sits between the callback to the server browser and add virtually zero overhead.
+https://github.com/ValveSoftware/csgo-osx-linux/issues/2540
+https://github.com/ValveSoftware/csgo-osx-linux/issues/2689
+https://github.com/ValveSoftware/csgo-osx-linux/issues/2767
+https://github.com/ValveSoftware/csgo-osx-linux/issues/3074
+https://github.com/ValveSoftware/csgo-osx-linux/issues/3810
+https://github.com/valvesoftware/source-1-games/issues/5101
 
-| Filter | Example |
-|---|---|
-| **REMOTE BLOCKLIST*** | `*.*.*.*/24, /sgaming.ru/i` |
-| **PLAYER SPOOFING** | `255/255` | 
-| **UNUSUAL PORT**| `x.x.x.x:5000` |
-| **CYRILLIC** | `спам-сервер` |
-| **EMOJIS** *off by default* | `🏆🏆🏆` |
+## The Solution
+Implemented filter logic directly into the callback to the server browser. Spam processing adds virtually zero overhead by using compiled RegEx, CIDR subnets and Geolite MMDB. These filters are *heuristic* meaning they cannot ensure 100% accuracy. 
 
-*Updated automatically on startup or on-demand in settings
+**Remote Blocklist** `*.*.*.*/24, /spamgaming.ru/i`
+This blocklist consists of known spam networks. It is maintained by [pureCSGO](https://purecsgo.com) and is updated automatically on startup or on-demand in settings. This single filter eliminates virtually all spam with a **<0.01% false positive rate**. 
+
+**Player Spoofing** `255/255`
+No Counter-Strike game supports over 64 players.
+
+**Unusual Port** `x.x.x.x:5000` *Off by default*
+A single IP can cause tons of spam simply thru port rotation. No legitimate server opeator hosts thousands of instances outside the **26000-30000** port range on a single IP.
+
+**Cyrillic** `спам-сервер`
+Cyrillic Unicode. Large portion of the spam is Russian and as such usually contains Cyrillic in the hostname.
+
+**Chinese** `垃圾郵件伺服器` *Off by default*
+Han Unicode.
+
+**Emojis** `Extended Pictographic, 🏆🏆🏆` *Off by default*
+Extended Pictographic Unicode. Some legitimate servers use symbols caught by this set. We use it over Emoji Presentation as it covers a wider range.
 
 ## Install
-> [!WARNING]
-> If you used the beta of this project, **pureBrowser**, make sure to delete it from your plugins to ensure it doesn't conflict
 
 This project requires [Millennium aka SteamBrew](https://steambrew.app), a framework for Steam. It is used commonly for themes but also plugins, install is quick and simple. 
 
