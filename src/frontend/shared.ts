@@ -82,7 +82,6 @@ export async function updatePluginData(): Promise<string> {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
-        console.log(data);
         if (!data?.success || !data.rows) throw new Error('Malformed API response');
         const rows = data.rows;
 
