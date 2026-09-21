@@ -1,7 +1,7 @@
 import React from 'react';
 import { definePlugin, Millennium, IconsModule, GameServer } from '@steambrew/client';
 import { logToConsole, initGeoDatabase, updatePluginData } from './shared';
-import { processServer, requestCompleted, resetCounters } from './heuristics-debug';
+import { processServer, requestCompleted, resetCounters } from './heuristics';
 
 import { ServerPlayerCounter, VerifiedFilter, ViewMode } from './browser/elements'
 import { SettingsModal } from './browser/settings';

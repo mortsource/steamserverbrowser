@@ -5,10 +5,11 @@ import { escapeHtml, notifyMapTileConfigChanged, onDocumentReady, debounce } fro
 // CONFIGURATION ————————————————————————————————————————
 const FILTERS: Array<{ key: string; label: string; description: string }> = [
     { key: 'filter_blocklist', label: 'Blocklist', description: "Block servers/hostnames from the maintained blocklist" },
-    { key: 'filter_player_spoof', label: 'Player Spoof', description: 'Block servers reporting more than 64 players/slots (engine limit)' },
-    { key: 'filter_port_range', label: 'Port Range', description: 'Block servers outside the 27000-27999 range used by real CS dedicated servers' },
-    { key: 'filter_cyrillic', label: 'Cyrillic', description: 'Block servers with Cyrillic characters in the name' },
-    { key: 'filter_emoji', label: 'Emoji', description: 'Block servers with emoji in the name' }
+    { key: 'filter_player_spoof', label: 'Player Spoof', description: 'Block servers with more than 64 players' },
+    { key: 'filter_unusual_port', label: 'Unusual Port', description: 'Block servers outside the 26000-30000 port range' },
+    { key: 'filter_cyrillic', label: 'Cyrillic Hostname', description: 'Block servers with Cyrillic characters in the hostname' },
+    { key: 'filter_chinese', label: 'Chinese Hostname', description: 'Block servers with Chinese characters in the hostname' },
+    { key: 'filter_emoji', label: 'Emoji Hostname', description: 'Block servers with emoji in the hostname' }
 ];
 
 export const CONFIG_KEY = 'sbplus_config';
@@ -31,12 +32,13 @@ export const MAP_TILE_PROVIDERS: Record<string, { label: string; url: string; at
 };
 const DEFAULT_MAP_TILE_PROVIDER = 'arcgis';
 
-const DEFAULTS = {
+export const DEFAULTS: Record<string, any> = {
     filter_blocklist: true,
     filter_player_spoof: true,
-    filter_port_range: true,
+    filter_unusual_port: false,
     filter_cyrillic: true,
-    filter_emoji: false, // let user decide
+    filter_chinese: false,
+    filter_emoji: false,
     map_tile_provider: DEFAULT_MAP_TILE_PROVIDER,
     cartocdn_api_key: ''
 };

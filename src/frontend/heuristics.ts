@@ -2,7 +2,7 @@ import { GameServer } from '@steambrew/client';
 import type { OnServerCb, OnCompleteCb } from './index';
 import { isRemoteVerified, GeoRecord, lookupGeo, VERIFIED_NAME_MARKER, serversMap, loadRemoteFilters } from './shared';
 import { ServerPlayerCounter } from './browser/elements';
-import { CONFIG_KEY } from './browser/settings';
+import { CONFIG_KEY, DEFAULTS } from './browser/settings';
 
 // PROCESSING ————————————————————————————————————————————————————————————
 let serverStats = createServerStats();
@@ -81,6 +81,7 @@ function createSpamStats() {
         count_blocklist: 0,
         count_geographic: 0,
         count_cyrillic: 0,
+        count_chinese: 0,
         count_emoji: 0,
         count_player_spoof: 0,
         count_port_range: 0
@@ -123,7 +124,7 @@ export function processServer(tab: string, srv: GameServer, serverCallback: OnSe
     serverCallback(srv);
 }
 
-export function requestCompleted(onComplete: OnCompleteCb, response: number): void {
+export function requestCompleted(_serverTab: string, onComplete: OnCompleteCb, response: number): void {
     onComplete(response);
 }
 
@@ -133,6 +134,7 @@ export function requestCompleted(onComplete: OnCompleteCb, response: number): vo
 const COUNTER_STRIKE_APP_IDS = [10, 80, 240, 730, 4465480] // CS, CS:CZ, CS:S, CS2, CS:GO Legacy
 const COUNTER_STRIKE_PORT_RANGE: [number, number] = [26000, 30000]; // expanded from 27000-27999 to allow larger networks while blocking spam
 const isCyrillic = (s: string): boolean => /[\p{Script=Cyrillic}]/u.test(s);
+const isChinese = (s: string): boolean => /[\p{Script=Han}]/u.test(s);
 const hasEmoji = (s: string): boolean => /\p{Extended_Pictographic}/u.test(s);
 
 const isSuspiciousPort = (port: number): boolean =>
@@ -160,7 +162,7 @@ function markVerifiedName(name: string, verified: boolean): string {
 const isFilterEnabled = (key: string): boolean => {
     if (!pluginConfigCache) refreshPluginConfigCache();
     const val = pluginConfigCache![key];
-    return val === undefined ? true : Boolean(val);
+    return Boolean(val === undefined ? DEFAULTS[key] ?? true : val);
 };
 
 export function isGoodServer(tab: string, server: GameServer, geo: GeoRecord, stats: any): boolean {
@@ -188,12 +190,17 @@ export function isGoodServer(tab: string, server: GameServer, geo: GeoRecord, st
         return false;
     }
 
+    if (isFilterEnabled('filter_chinese') && isChinese(name)) {
+        stats.count_chinese++;
+        return false;
+    }
+
     if (isFilterEnabled('filter_player_spoof') && (players > 64 || maxPlayers > 64)) {
         stats.count_player_spoof++;
         return false;
     }
 
-    if (isFilterEnabled('filter_port_range') && isSuspiciousPort(port)) {
+    if (isFilterEnabled('filter_unusual_port') && isSuspiciousPort(port)) {
         stats.count_port_range++;
         return false;
     }
