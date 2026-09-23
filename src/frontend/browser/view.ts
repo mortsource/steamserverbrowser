@@ -1,7 +1,7 @@
 import { constSysfsExpr } from '@steambrew/client';
 import * as L from 'leaflet';
 import 'leaflet.markercluster';
-import { logToConsole, serversMap } from '../shared';
+import { logToConsole, serversMap, subnet24, blockLocally } from '../shared';
 import { browserState, onDocumentReady, onMapTileConfigChanged, buildBadges, buildPingBars, buildPlayerBar, playersLine, escapeHtml, attachThumbFallback, attachRowThumbFallback, getFlagSvg, getNativeFilteredKeys, getNativeServer, getActiveTabId, rafThrottle } from './ui_shared';
 import { getMapTileConfig } from './settings';
 
@@ -682,6 +682,9 @@ function showContextMenu(doc: Document, server: any, clientX: number, clientY: n
                 else SC.ServerBrowser.AddFavoriteServer(target);
             },
         },
+        null,
+        { label: `Block IP (${server.ip})`, action: () => blockLocally(server.ip) },
+        { label: `Block subnet (${subnet24(server.ip)})`, action: () => blockLocally(subnet24(server.ip)) },
     ];
 
     const menu = doc.createElement('div');

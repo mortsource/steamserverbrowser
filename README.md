@@ -23,23 +23,26 @@ Valve has repeatedly ignored issue reports about spam servers flooding the brows
 ## The Solution
 Implemented filter logic directly into the callback to the server browser. Spam processing adds virtually zero overhead by using compiled RegEx, CIDR subnets and Geolite MMDB. These filters are *heuristic* meaning they cannot ensure 100% accuracy. 
 
-**Remote Blocklist** `*.*.*.*/24, /spamgaming.ru/i`
+**Remote Blocklist** `*.*.*.*/24, /spamgaming.ru/i`  
 This blocklist consists of known spam networks. It is maintained by [pureCSGO](https://purecsgo.com) and is updated automatically on startup or on-demand in settings. This single filter eliminates virtually all spam with a **<0.01% false positive rate**. 
 
-**Player Spoofing** `255/255`
+**Local Blocklist**
+Right-click to add servers by IP or /24 subnet to a local blocklist. Remove servers from the local blocklist in the settings menu.
+
+**Player Spoofing** `255/255`  
 No Counter-Strike game supports over 64 players.
 
-**Unusual Port** `x.x.x.x:5000` *Off by default*
+**Unusual Port** `x.x.x.x:5000` *Off by default*  
 A single IP can cause tons of spam simply thru port rotation. No legitimate server opeator hosts thousands of instances outside the **26000-30000** port range on a single IP.
 
-**Cyrillic** `спам-сервер`
+**Cyrillic** `спам-сервер`  
 Cyrillic Unicode. Large portion of the spam is Russian and as such usually contains Cyrillic in the hostname.
 
-**Chinese** `垃圾郵件伺服器` *Off by default*
+**Chinese** `垃圾郵件伺服器` *Off by default*  
 Han Unicode.
 
-**Emojis** `Extended Pictographic, 🏆🏆🏆` *Off by default*
-Extended Pictographic Unicode. Some legitimate servers use symbols caught by this set. We use it over Emoji Presentation as it covers a wider range.
+**Emojis** `Extended Pictographic, 🏆🏆🏆` *Off by default*  
+Some legitimate servers use symbols caught by this set. We use it over Emoji Presentation as it covers a wider range.
 
 ## Install
 

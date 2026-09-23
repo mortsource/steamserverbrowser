@@ -1,10 +1,11 @@
 import { constSysfsExpr } from '@steambrew/client';
-import { logToConsole, updatePluginData } from '../shared';
+import { logToConsole, updatePluginData, loadLocalBlocklist, removeFromLocalBlocklist } from '../shared';
 import { escapeHtml, notifyMapTileConfigChanged, onDocumentReady, debounce } from './ui_shared';
 
 // CONFIGURATION ————————————————————————————————————————
 const FILTERS: Array<{ key: string; label: string; description: string }> = [
-    { key: 'filter_blocklist', label: 'Blocklist', description: "Block servers/hostnames from the maintained blocklist" },
+    { key: 'filter_remote_blocklist', label: 'Remote Blocklist', description: "Block servers/hostnames from the maintained blocklist" },
+    { key: 'filter_personal_blocklist', label: 'Personal Blocklist', description: 'Block servers/hostnames added to your personal blocklist' },
     { key: 'filter_player_spoof', label: 'Player Spoof', description: 'Block servers with more than 64 players' },
     { key: 'filter_unusual_port', label: 'Unusual Port', description: 'Block servers outside the 26000-30000 port range' },
     { key: 'filter_cyrillic', label: 'Cyrillic Hostname', description: 'Block servers with Cyrillic characters in the hostname' },
@@ -23,7 +24,7 @@ export const MAP_TILE_PROVIDERS: Record<string, { label: string; url: string; at
         needsApiKey: false,
     },
     cartocdn: {
-        label: 'CartoDB (requires API key)',
+        label: 'CartoDB',
         url: 'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
         attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
         maxZoom: 19,
@@ -33,7 +34,8 @@ export const MAP_TILE_PROVIDERS: Record<string, { label: string; url: string; at
 const DEFAULT_MAP_TILE_PROVIDER = 'arcgis';
 
 export const DEFAULTS: Record<string, any> = {
-    filter_blocklist: true,
+    filter_remote_blocklist: true,
+    filter_personal_blocklist: true,
     filter_player_spoof: true,
     filter_unusual_port: false,
     filter_cyrillic: true,
@@ -96,7 +98,7 @@ const ICON_GITHUB = constSysfsExpr('mark-github-16.svg', { basePath: '../../node
 const ICON_KOFI = `<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11.351 2.715c-2.7 0-4.986.025-6.83.26C2.078 3.285 0 5.154 0 8.61c0 3.506.182 6.13 1.585 8.493 1.584 2.701 4.233 4.182 7.662 4.182h.83c4.209 0 6.494-2.234 7.637-4a9.5 9.5 0 0 0 1.091-2.338C21.792 14.688 24 12.22 24 9.208v-.415c0-3.247-2.13-5.507-5.792-5.87-1.558-.156-2.65-.208-6.857-.208m0 1.947c4.208 0 5.09.052 6.571.182 2.624.311 4.13 1.584 4.13 4v.39c0 2.156-1.792 3.844-3.87 3.844h-.935l-.156.649c-.208 1.013-.597 1.818-1.039 2.546-.909 1.428-2.545 3.064-5.922 3.064h-.805c-2.571 0-4.831-.883-6.078-3.195-1.09-2-1.298-4.155-1.298-7.506 0-2.181.857-3.402 3.012-3.714 1.533-.233 3.559-.26 6.39-.26m6.547 2.287c-.416 0-.65.234-.65.546v2.935c0 .311.234.545.65.545 1.324 0 2.051-.754 2.051-2s-.727-2.026-2.052-2.026m-10.39.182c-1.818 0-3.013 1.48-3.013 3.142 0 1.533.858 2.857 1.949 3.897.727.701 1.87 1.429 2.649 1.896a1.47 1.47 0 0 0 1.507 0c.78-.467 1.922-1.195 2.623-1.896 1.117-1.039 1.974-2.364 1.974-3.897 0-1.662-1.247-3.142-3.039-3.142-1.065 0-1.792.545-2.338 1.298-.493-.753-1.246-1.298-2.312-1.298"/></svg>`;
 const ICON_CHECK = `<svg viewBox="0 0 12 12" fill="none"><path d="M2 6.2l2.6 2.6L10 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const ROW_EXTRAS: Record<string, string> = {
-    filter_blocklist: `
+    filter_remote_blocklist: `
         <span class="sbplus-settings-row-extra">
             <span class="sbplus-settings-row-status" id="sbplus-remote-status"></span>
             <button type="button" class="sbplus-settings-row-action" id="sbplus-remote-update">Update</button>
@@ -186,6 +188,14 @@ function ensureModalStyles(doc: Document): void {
         }
         .sbplus-settings-input:focus { outline: none; border-bottom-color: rgba(255,255,255,0.6); }
 
+        .sbplus-settings-row-input {
+            flex: 1 1 auto; min-width: 0; margin-left: auto; box-sizing: border-box;
+            background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.2);
+            border-radius: 0; color: var(--text); font-size: 12px; padding: 4px 0;
+        }
+        .sbplus-settings-row-input:focus { outline: none; border-bottom-color: rgba(255,255,255,0.6); }
+        .sbplus-settings-row-input::placeholder { color: var(--text-faint); }
+
         .sbplus-settings-row-extra { display: flex; align-items: center; gap: 8px; margin-left: auto; }
         .sbplus-settings-row-status { font-size: 11px; color: var(--text-faint); white-space: nowrap; }
         .sbplus-settings-row-action {
@@ -195,6 +205,25 @@ function ensureModalStyles(doc: Document): void {
         }
         .sbplus-settings-row-action:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.45); }
         .sbplus-settings-row-action:disabled { opacity: 0.5; cursor: default; }
+
+        .sbplus-settings-blocklist { display: flex; flex-direction: column; gap: 2px; max-height: 160px; overflow-y: auto; }
+        .sbplus-settings-blocklist-row {
+            display: flex; align-items: center; justify-content: space-between; gap: 8px;
+            padding: 6px 0; border-bottom: 1px solid var(--border-soft); font-size: 12px;
+        }
+        .sbplus-settings-blocklist-row:last-child { border-bottom: none; }
+        .sbplus-settings-blocklist-value {
+            color: var(--text); font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .sbplus-settings-blocklist-remove {
+            flex-shrink: 0; width: 18px; height: 18px; padding: 0; box-sizing: border-box;
+            border: 1px solid rgba(255,255,255,0.28); border-radius: 3px; background: transparent;
+            color: var(--text-dim); font-size: 11px; line-height: 1; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            transition: background var(--transition-ui), border-color var(--transition-ui), color var(--transition-ui);
+        }
+        .sbplus-settings-blocklist-remove:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.45); color: #fff; }
+        .sbplus-settings-blocklist-empty { font-size: 11px; color: var(--text-faint); padding: 6px 0; }
     `;
     doc.head.appendChild(s);
 }
@@ -208,6 +237,16 @@ function ToggleSwitch(key: string, label: string, description: string, checked: 
         </div>`;
 }
 
+function renderBlocklistRows(): string {
+    const entries = loadLocalBlocklist();
+    if (!entries.length) return `<div class="sbplus-settings-blocklist-empty">No entries yet — right-click a server in Enhanced View to block its IP or subnet.</div>`;
+    return entries.map((entry) => `
+        <div class="sbplus-settings-blocklist-row" data-entry="${escapeHtml(entry)}">
+            <span class="sbplus-settings-blocklist-value">${escapeHtml(entry)}</span>
+            <button type="button" class="sbplus-settings-blocklist-remove" title="Remove" aria-label="Remove ${escapeHtml(entry)}">✕</button>
+        </div>`).join('');
+}
+
 function MapTilesSection(settings: any): string {
     const provider = MAP_TILE_PROVIDERS[settings.map_tile_provider] ? settings.map_tile_provider : DEFAULT_MAP_TILE_PROVIDER;
     return `
@@ -217,12 +256,9 @@ function MapTilesSection(settings: any): string {
                 ${Object.entries(MAP_TILE_PROVIDERS).map(([key, p]) => `
                     <div class="sbplus-settings-row" title="${escapeHtml(p.label)}">
                         <span class="sbplus-settings-row-label">${escapeHtml(p.label)}</span>
+                        ${p.needsApiKey ? `<input type="text" class="sbplus-settings-row-input" id="sbplus-map-apikey" placeholder="Paste your CARTO API key" value="${escapeHtml(settings.cartocdn_api_key ?? '')}">` : ''}
                         <button type="button" class="sbplus-settings-toggle${key === provider ? ' on' : ''}" role="radio" aria-checked="${key === provider}" aria-label="${escapeHtml(p.label)}" data-provider="${key}">${ICON_CHECK}</button>
                     </div>`).join('')}
-            </div>
-            <div class="sbplus-settings-field">
-                <div class="sbplus-settings-field-label">CartoDB API Key</div>
-                <input type="text" class="sbplus-settings-input" id="sbplus-map-apikey" placeholder="Paste your CARTO API key" value="${escapeHtml(settings.cartocdn_api_key ?? '')}">
             </div>
         </div>`;
 }
@@ -259,6 +295,10 @@ function buildModal(doc: Document): HTMLElement {
                     </div>
                 </div>
                 <div class="sbplus-settings-col sbplus-settings-col-right">
+                    <div class="sbplus-settings-section">
+                        <div class="sbplus-settings-header">Personal Blocklist</div>
+                        <div class="sbplus-settings-blocklist" id="sbplus-blocklist-list">${renderBlocklistRows()}</div>
+                    </div>
                     ${MapTilesSection(settings)}
                 </div>
             </div>
@@ -301,12 +341,25 @@ function buildModal(doc: Document): HTMLElement {
 
     providerToggles.forEach((toggle) => {
         toggle.closest('.sbplus-settings-row')
-            ?.addEventListener('click', () => selectProvider(toggle.dataset.provider as string));
+            ?.addEventListener('click', (e) => {
+                if ((e.target as HTMLElement).closest('.sbplus-settings-row-input')) return;
+                selectProvider(toggle.dataset.provider as string);
+            });
     });
     const scheduleMapTileConfigChanged = debounce(notifyMapTileConfigChanged, 400);
     mapApiKeyInput.addEventListener('input', () => {
         update('cartocdn_api_key', mapApiKeyInput.value.trim());
         scheduleMapTileConfigChanged();
+    });
+
+    const blocklistEl = q<HTMLElement>('#sbplus-blocklist-list');
+    blocklistEl.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest('.sbplus-settings-blocklist-remove') as HTMLButtonElement | null;
+        if (!btn) return;
+        const entry = (btn.closest('.sbplus-settings-blocklist-row') as HTMLElement | null)?.dataset.entry;
+        if (!entry) return;
+        removeFromLocalBlocklist(entry);
+        blocklistEl.innerHTML = renderBlocklistRows();
     });
 
     const remoteStatus = q<HTMLElement>('#sbplus-remote-status');
@@ -333,6 +386,10 @@ function openSettingsModal(doc: Document): void {
             if (e.key === 'Escape' && modalEl?.classList.contains('open')) closeSettingsModal();
         });
     }
+
+    const blocklistEl = modalEl.querySelector<HTMLElement>('#sbplus-blocklist-list');
+    if (blocklistEl) blocklistEl.innerHTML = renderBlocklistRows();
+
     modalEl.classList.add('open');
 }
 

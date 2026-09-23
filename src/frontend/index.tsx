@@ -2,8 +2,7 @@ import React from 'react';
 import { definePlugin, Millennium, IconsModule, GameServer } from '@steambrew/client';
 import { logToConsole, initGeoDatabase, updatePluginData } from './shared';
 import { processServer, requestCompleted, resetCounters } from './heuristics';
-
-import { ServerPlayerCounter, VerifiedFilter, ViewMode } from './browser/elements'
+import { ServerPlayerCounter, VerifiedFilter, ViewMode, NativeContextMenu } from './browser/elements'
 import { SettingsModal } from './browser/settings';
 import { EnhancedView } from './browser/view';
 import { GameSelect } from './browser/gameselect';
@@ -51,6 +50,7 @@ function tryInjectWhenReady(doc: Document): void {
             EnhancedView(doc);
             SettingsModal(doc);
             VerifiedFilter(doc);
+            NativeContextMenu(doc);
             return;
         }
 
