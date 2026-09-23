@@ -1,5 +1,5 @@
 import { findModuleExport, constSysfsExpr } from '@steambrew/client';
-import { logToConsole, isRemoteVerified, VERIFIED_NAME_MARKER, NEW_VERSION_AVAILABLE } from '../shared';
+import { logToConsole, isRemoteVerified, VERIFIED_NAME_MARKER, NEW_VERSION_AVAILABLE, blockLocally, subnet24 } from '../shared';
 import { browserState, onDocumentReady, liveTabStates, debounce, rafThrottle } from './ui_shared';
 import { refreshEnhancedView } from './view';
 
@@ -352,6 +352,75 @@ export function ViewMode(doc: Document): void {
     };
 
     onDocumentReady(doc, tryInsert);
+}
+
+
+
+// NATIVE CONTEXT MENU INJECTION ————————————————————————————————————————————————————————————
+const COPY_ADDR_RE = /^Copy '([\d.]+):(\d+)' to clipboard$/;
+
+function extractIp(menu: HTMLElement): string | null {
+    let ip: string | null = null;
+    menu.querySelectorAll<HTMLElement>('.contextMenuItem').forEach((item) => {
+        const match = item.textContent?.match(COPY_ADDR_RE);
+        if (match) ip = match[1];
+    });
+    return ip;
+}
+
+function dismissNativeMenu(doc: Document, menu: HTMLElement): void {
+    const win = doc.defaultView;
+    if (!win) return;
+
+    // Try every plausible dismiss trigger -- pointer events at the outside
+    // click, Escape at the document, and blur on the menu itself (it carries
+    // tabindex="0", suggesting a focus-trap style close-on-blur pattern too).
+    for (const type of ['pointerdown', 'mousedown', 'mouseup', 'click']) {
+        doc.body.dispatchEvent(new win.MouseEvent(type, { bubbles: true, cancelable: true, view: win }));
+    }
+    for (const type of ['keydown', 'keyup']) {
+        doc.dispatchEvent(new win.KeyboardEvent(type, { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
+    }
+    menu.dispatchEvent(new win.FocusEvent('focusout', { bubbles: true }));
+    menu.blur?.();
+}
+
+function injectBlockItems(doc: Document, menu: HTMLElement, ip: string): void {
+    const contents = menu.querySelector<HTMLElement>('.contextMenuContents');
+    const items = contents?.querySelectorAll<HTMLElement>('.contextMenuItem');
+    if (!contents || !items?.length) return;
+
+    const reference = items[items.length - 1];
+    const subnet = subnet24(ip);
+
+    const addItem = (label: string, entry: string) => {
+        const el = reference.cloneNode(true) as HTMLElement;
+        el.textContent = label;
+        el.addEventListener('click', () => {
+            blockLocally(entry);
+            dismissNativeMenu(doc, menu);
+        });
+        contents.appendChild(el);
+    };
+
+    addItem(`Block IP (${ip})`, ip);
+    addItem(`Block subnet (${subnet})`, subnet);
+}
+
+export function NativeContextMenu(doc: Document): void {
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType !== 1) return;
+                const el = node as HTMLElement;
+                if (!el.classList?.contains('contextMenu') || !el.classList.contains('ContextMenuPosition')) return;
+
+                const ip = extractIp(el);
+                if (ip) injectBlockItems(doc, el, ip);
+            });
+        });
+    });
+    observer.observe(doc.body ?? doc.documentElement, { childList: true, subtree: true });
 }
 
 

@@ -67,7 +67,7 @@ const PLUGIN_MANIFEST: { version: string } = JSON.parse(constSysfsExpr('plugin.j
 const PLUGIN_VERSION = PLUGIN_MANIFEST.version;
 export let NEW_VERSION_AVAILABLE = false;
 
-const STORAGE_KEY = 'sbplus_data';
+const STORAGE_KEY = 'sbplus_remoteblocklist';
 let verifiedSetCache: Set<string> | null = null;
 
 export async function updatePluginData(): Promise<string> {
@@ -117,6 +117,110 @@ export function loadRemoteFilters(): any {
 export function isRemoteVerified(ip: string, port: number): boolean {
     if (!verifiedSetCache) verifiedSetCache = new Set(loadRemoteFilters()?.verifiedIps ?? []);
     return verifiedSetCache.has(`${ip}:${port}`);
+}
+
+
+
+// IP / CIDR MATCHING ————————————————————————————————————————————————————————————
+export const ipToInt = (ip: string): number => {
+    const p = ip.split('.');
+    if (p.length !== 4) return -1;
+    return ((+p[0] * 256 + +p[1]) * 256 + +p[2]) * 256 + +p[3];
+};
+
+export interface CidrBucket { mask: number; nets: Set<number>; }
+export interface IpMatcher { ipSet: Set<string>; buckets: CidrBucket[]; }
+
+export function buildIpMatcher(entries: string[]): IpMatcher {
+    const ipSet = new Set<string>();
+    const byLength = new Map<number, Set<number>>();
+
+    for (const entry of entries) {
+        if (!entry.includes('/')) { ipSet.add(entry); continue; }
+
+        const [addr, lengthText] = entry.split('/');
+        const length = Number(lengthText);
+        const value = ipToInt(addr);
+        if (value < 0 || !Number.isInteger(length) || length < 1 || length > 32) continue;
+
+        const mask = (0xFFFFFFFF << (32 - length)) >>> 0;
+        let nets = byLength.get(length);
+        if (!nets) byLength.set(length, nets = new Set());
+        nets.add((value & mask) >>> 0);
+    }
+
+    const buckets = [...byLength.entries()]
+        .map(([length, nets]) => ({ mask: (0xFFFFFFFF << (32 - length)) >>> 0, nets }));
+    return { ipSet, buckets };
+}
+
+export function matchesIpMatcher(ip: string, matcher: IpMatcher): boolean {
+    if (matcher.ipSet.has(ip)) return true;
+    const value = ipToInt(ip);
+    if (value < 0) return false;
+    for (const { mask, nets } of matcher.buckets) {
+        if (nets.has((value & mask) >>> 0)) return true;
+    }
+    return false;
+}
+
+export const subnet24 = (ip: string): string => {
+    const p = ip.split('.');
+    return p.length === 4 ? `${p[0]}.${p[1]}.${p[2]}.0/24` : ip;
+};
+
+
+
+// LOCAL BLOCKLIST ————————————————————————————————————————————————————————————
+const LOCAL_BLOCKLIST_KEY = 'sbplus_localblocklist';
+let localBlocklistMatcher: IpMatcher = buildIpMatcher([]);
+
+export function loadLocalBlocklist(): string[] {
+    try {
+        const raw = localStorage.getItem(LOCAL_BLOCKLIST_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed.filter((e: any): e is string => typeof e === 'string') : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveLocalBlocklist(entries: string[]): void {
+    try {
+        localStorage.setItem(LOCAL_BLOCKLIST_KEY, JSON.stringify(entries));
+    } catch (e) {
+        logToConsole(`Failed to save local blocklist: ${e}`, 'Error');
+    }
+}
+
+export function refreshLocalBlocklistCache(): void {
+    localBlocklistMatcher = buildIpMatcher(loadLocalBlocklist());
+}
+refreshLocalBlocklistCache();
+
+export function isLocallyBlocked(ip: string): boolean {
+    return matchesIpMatcher(ip, localBlocklistMatcher);
+}
+
+export function addToLocalBlocklist(entry: string): boolean {
+    const list = loadLocalBlocklist();
+    if (list.includes(entry)) return false;
+    saveLocalBlocklist([...list, entry]);
+    refreshLocalBlocklistCache();
+    return true;
+}
+
+export function removeFromLocalBlocklist(entry: string): void {
+    saveLocalBlocklist(loadLocalBlocklist().filter((e) => e !== entry));
+    refreshLocalBlocklistCache();
+}
+
+export function blockLocally(entry: string): void {
+    if (!addToLocalBlocklist(entry)) {
+        logToConsole(`'${entry}' is already in the local blocklist`, 'Info');
+        return;
+    }
+    logToConsole(`Added '${entry}' to the local blocklist, applies on next refresh`, 'Info');
 }
 
 

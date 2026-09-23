@@ -1,23 +1,17 @@
 import { GameServer } from '@steambrew/client';
 import type { OnServerCb, OnCompleteCb } from './index';
-import { isRemoteVerified, GeoRecord, lookupGeo, VERIFIED_NAME_MARKER, serversMap, loadRemoteFilters } from './shared';
+import { isRemoteVerified, GeoRecord, lookupGeo, VERIFIED_NAME_MARKER, serversMap, loadRemoteFilters, buildIpMatcher, matchesIpMatcher, isLocallyBlocked, refreshLocalBlocklistCache, IpMatcher } from './shared';
 import { ServerPlayerCounter } from './browser/elements';
 import { CONFIG_KEY, DEFAULTS } from './browser/settings';
+// import { recordConcentration, resetConcentration, printSummary, debugLogRejection } from './debug';
 
 // PROCESSING ————————————————————————————————————————————————————————————
 let serverStats = createServerStats();
 let spamStats = createSpamStats();
 let counterEl = new ServerPlayerCounter();
 let pluginConfigCache: Record<string, any> | null = null;
-let remoteIpSet = new Set<string>();
+let remoteMatcher: IpMatcher = buildIpMatcher([]);
 let remoteHostnameRegexes: RegExp[] = [];
-let remoteCidrBuckets: { mask: number; nets: Set<number> }[] = [];
-
-const ipToInt = (ip: string): number => {
-    const p = ip.split('.');
-    if (p.length !== 4) return -1;
-    return ((+p[0] * 256 + +p[1]) * 256 + +p[2]) * 256 + +p[3];
-};
 
 function compilePatterns(patterns: string[]): RegExp[] {
     const compiled: RegExp[] = [];
@@ -41,25 +35,7 @@ function refreshPluginConfigCache(): void {
 
 function rebuildRemoteFilterCache(): void {
     const stored = loadRemoteFilters();
-    remoteIpSet = new Set();
-
-    const byLength = new Map<number, Set<number>>();
-    for (const entry of stored?.ipBlocklist ?? []) {
-        if (!entry.includes('/')) { remoteIpSet.add(entry); continue; }
-
-        const [addr, lengthText] = entry.split('/');
-        const length = Number(lengthText);
-        const value = ipToInt(addr);
-        if (value < 0 || !Number.isInteger(length) || length < 1 || length > 32) continue;
-
-        const mask = (0xFFFFFFFF << (32 - length)) >>> 0;
-        let nets = byLength.get(length);
-        if (!nets) byLength.set(length, nets = new Set());
-        nets.add((value & mask) >>> 0);
-    }
-
-    remoteCidrBuckets = [...byLength.entries()]
-        .map(([length, nets]) => ({ mask: (0xFFFFFFFF << (32 - length)) >>> 0, nets }));
+    remoteMatcher = buildIpMatcher(stored?.ipBlocklist ?? []);
     remoteHostnameRegexes = compilePatterns(stored?.hostnamePatterns ?? []);
 }
 
@@ -78,7 +54,8 @@ function createServerStats() {
 
 function createSpamStats() {
     return {
-        count_blocklist: 0,
+        count_remote_blocklist: 0,
+        count_local_blocklist: 0,
         count_geographic: 0,
         count_cyrillic: 0,
         count_chinese: 0,
@@ -92,7 +69,9 @@ export function resetCounters() {
     serverStats = createServerStats();
     spamStats = createSpamStats();
     serversMap.clear();
+    // resetConcentration();
     rebuildRemoteFilterCache();
+    refreshLocalBlocklistCache();
     refreshPluginConfigCache();
     counterEl.update(serverStats);
 }
@@ -101,8 +80,10 @@ export function processServer(tab: string, srv: GameServer, serverCallback: OnSe
     serverStats.count_servers_total++;
     serverStats.count_players_total += srv.players;
 
-    const geo = lookupGeo(srv.ip);
+    // if (!(isFilterEnabled('filter_remote_blocklist') && isBlockedServer(srv.ip, srv.name))) recordConcentration(srv.ip);
 
+    const geo = lookupGeo(srv.ip);
+    
     if (!isGoodServer(tab, srv, geo, spamStats)) {
         serverStats.count_servers_bad++;
         serverStats.count_players_bad += srv.players;
@@ -125,6 +106,7 @@ export function processServer(tab: string, srv: GameServer, serverCallback: OnSe
 }
 
 export function requestCompleted(_serverTab: string, onComplete: OnCompleteCb, response: number): void {
+    // printSummary(_serverTab, serverStats, spamStats);
     onComplete(response);
 }
 
@@ -141,15 +123,7 @@ const isSuspiciousPort = (port: number): boolean =>
     port < COUNTER_STRIKE_PORT_RANGE[0] || port > COUNTER_STRIKE_PORT_RANGE[1];
 
 function isBlockedServer(ip: string, hostname: string): boolean {
-    if (remoteIpSet.has(ip)) return true;
-
-    const value = ipToInt(ip);
-    if (value >= 0) {
-        for (const { mask, nets } of remoteCidrBuckets) {
-            if (nets.has((value & mask) >>> 0)) return true;
-        }
-    }
-
+    if (matchesIpMatcher(ip, remoteMatcher)) return true;
     if (remoteHostnameRegexes.some(re => re.test(hostname))) return true;
     return false;
 }
@@ -167,12 +141,14 @@ const isFilterEnabled = (key: string): boolean => {
 
 export function isGoodServer(tab: string, server: GameServer, geo: GeoRecord, stats: any): boolean {
     const { name, ip, port, players, maxPlayers } = server;
+    // const addr = `${ip}:${port}`;
 
     // This ordering is intentional.
     if (tab === 'favorites')
         return true;
 
     if (geo?.countryCode === 'RU' || geo?.countryCode === 'BY') {
+        // debugLogRejection('Geographic', addr, name, players, maxPlayers);
         stats.count_geographic++;
         return false;
     }
@@ -181,33 +157,45 @@ export function isGoodServer(tab: string, server: GameServer, geo: GeoRecord, st
         return true;
 
     if (isFilterEnabled('filter_emoji') && hasEmoji(name)) {
+        // debugLogRejection('Emojis', addr, name, players, maxPlayers);
         stats.count_emoji++;
         return false;
     }
 
     if (isFilterEnabled('filter_cyrillic') && isCyrillic(name)) {
+        // debugLogRejection('Cyrillic', addr, name, players, maxPlayers);
         stats.count_cyrillic++;
         return false;
     }
 
     if (isFilterEnabled('filter_chinese') && isChinese(name)) {
+        // debugLogRejection('Chinese', addr, name, players, maxPlayers);
         stats.count_chinese++;
         return false;
     }
 
     if (isFilterEnabled('filter_player_spoof') && (players > 64 || maxPlayers > 64)) {
+        // debugLogRejection('PlayerSpoof', addr, name, players, maxPlayers);
         stats.count_player_spoof++;
         return false;
     }
 
     if (isFilterEnabled('filter_unusual_port') && isSuspiciousPort(port)) {
+        // debugLogRejection('PortRange', addr, name, players, maxPlayers);
         stats.count_port_range++;
         return false;
     }
 
-    if (isFilterEnabled('filter_blocklist')) {
+    if (isFilterEnabled('filter_personal_blocklist') && isLocallyBlocked(ip)) {
+        // debugLogRejection('LocalBlocklist', addr, name, players, maxPlayers);
+        stats.count_local_blocklist++;
+        return false;
+    }
+
+    if (isFilterEnabled('filter_remote_blocklist')) {
         if (isBlockedServer(ip, name)) {
-            stats.count_blocklist++;
+            // debugLogRejection('RemoteBlocklist', addr, name, players, maxPlayers);
+            stats.count_remote_blocklist++;
             return false;
         }
     }
