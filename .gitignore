@@ -1,0 +1,5 @@
+.claude/
+.millennium/
+.vscode/
+node_modules/
+src/steamui/

@@ -1,0 +1,388 @@
+/* #region SETTINGS */
+.sbplus-settings-overlay {
+    --font: "Motiva Sans", Arial, Helvetica, sans-serif;
+    --panel-bg: radial-gradient(circle at left top, rgba(74, 81, 92, 0.4) 0%, rgba(75, 81, 92, 0) 60%), rgb(37, 40, 46);
+    --field-bg: rgb(35, 38, 46);
+    --field-bg-hover: rgb(43, 47, 56);
+    --input-bg: rgba(59, 63, 72, 0.5);
+    --input-bg-hover: rgba(67, 73, 83, 0.6);
+    --button-bg: rgb(61, 68, 80);
+    --button-bg-hover: rgb(70, 77, 88);
+    --checkbox-bg: rgba(0, 0, 0, 0.267);
+    --checkbox-bg-hover: rgb(9, 9, 9);
+    --text-title: #fff;
+    --text-label: rgb(220, 222, 223);
+    --text-button: rgb(223, 227, 230);
+    --text-value: rgb(139, 146, 154);
+    --text-muted: rgb(150, 150, 150);
+    --transition-ui: 0.2s ease-out;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font);
+    font-weight: 300;
+    user-select: none;
+}
+
+.sbplus-settings-overlay.open {
+    display: flex;
+}
+
+.sbplus-settings-panel {
+    width: 1040px;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: var(--panel-bg);
+    box-shadow: rgba(0, 0, 0, 0.75) 0 8px 38px 5px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sbplus-settings-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 24px 4px;
+    flex-shrink: 0;
+}
+
+.sbplus-settings-title {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 28px;
+    color: var(--text-title);
+    flex: 1 1 auto;
+}
+
+.sbplus-settings-head-links {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-right: 16px;
+}
+
+.sbplus-settings-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    color: var(--text-value);
+    transition: color var(--transition-ui);
+}
+
+.sbplus-settings-link svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+    fill: currentColor;
+}
+
+.sbplus-settings-close {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    transition: color var(--transition-ui);
+}
+
+.sbplus-settings-link:hover,
+.sbplus-settings-close:hover {
+    color: var(--text-title);
+}
+
+.sbplus-settings-body {
+    display: grid;
+    grid-template-columns: 300px minmax(220px, 1fr) minmax(280px, 1.4fr);
+    gap: 24px;
+    padding: 16px 24px 24px;
+    overflow-y: auto;
+    align-items: stretch;
+}
+
+.sbplus-settings-col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+}
+
+.sbplus-settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sbplus-settings-section-fill {
+    flex: 1 1 auto;
+    min-height: 320px;
+}
+
+.sbplus-settings-header {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-value);
+    margin-bottom: 4px;
+}
+
+.sbplus-settings-list,
+[role="radiogroup"] {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sbplus-settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 12px;
+    background: var(--field-bg);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background-color var(--transition-ui);
+}
+
+.sbplus-settings-row:hover {
+    background: var(--field-bg-hover);
+}
+
+.sbplus-settings-row-label {
+    flex: 1 1 auto;
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--text-label);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sbplus-settings-toggle {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    box-sizing: border-box;
+    border: none;
+    border-radius: 2px;
+    background: var(--checkbox-bg);
+    box-shadow: rgba(1, 1, 1, 0.4) 1px 0.5px 3px inset;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-title);
+    transition: background-color var(--transition-ui);
+}
+
+.sbplus-settings-toggle[role="radio"] {
+    border-radius: 50%;
+}
+
+.sbplus-settings-row:hover .sbplus-settings-toggle {
+    background: var(--checkbox-bg-hover);
+}
+
+.sbplus-settings-toggle svg {
+    width: 14px;
+    height: 14px;
+    opacity: 0;
+    transition: opacity 0.1s ease-in-out;
+}
+
+.sbplus-settings-toggle.on svg {
+    opacity: 1;
+}
+
+.sbplus-settings-row-input {
+    order: 3;
+    flex: 1 1 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    background: var(--input-bg);
+    border: none;
+    border-radius: 3px;
+    box-shadow: rgba(0, 0, 0, 0) 0 0 0 inset;
+    color: var(--text-button);
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 22px;
+    padding: 10px;
+    user-select: text;
+    transition: background-color var(--transition-ui), box-shadow var(--transition-ui);
+}
+
+.sbplus-settings-row-input:hover {
+    background: var(--input-bg-hover);
+}
+
+.sbplus-settings-row-input:focus {
+    outline: none;
+    background: var(--input-bg-hover);
+    box-shadow: rgba(0, 0, 0, 0.667) 1px 1px 8px inset;
+    padding-left: 11px;
+}
+
+.sbplus-settings-row-input::placeholder {
+    color: rgba(136, 136, 136, 0.7);
+}
+
+.sbplus-settings-row-extra {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.sbplus-settings-row-action {
+    height: 26px;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border: none;
+    border-radius: 2px;
+    background: var(--button-bg);
+    color: var(--text-button);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 300;
+    line-height: 26px;
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+    transition: background-color var(--transition-ui), color var(--transition-ui);
+}
+
+.sbplus-settings-row-action:hover {
+    background: var(--button-bg-hover);
+    color: var(--text-title);
+}
+
+.sbplus-settings-row-action:disabled {
+    background: rgba(61, 67, 77, 0.35);
+    color: rgb(70, 77, 88);
+    cursor: default;
+}
+
+.sbplus-settings-blocklist {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.sbplus-settings-blocklist-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    background: var(--field-bg);
+    border-radius: 2px;
+    font-size: 14px;
+    line-height: 22px;
+    transition: background-color var(--transition-ui);
+}
+
+.sbplus-settings-blocklist-value {
+    color: var(--text-label);
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sbplus-settings-blocklist-remove {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    box-sizing: border-box;
+    border: none;
+    border-radius: 2px;
+    background: var(--button-bg);
+    color: var(--text-button);
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color var(--transition-ui), color var(--transition-ui);
+}
+
+.sbplus-settings-blocklist-remove:hover {
+    background: var(--button-bg-hover);
+    color: var(--text-title);
+}
+
+.sbplus-settings-blocklist-empty {
+    font-size: 13px;
+    color: var(--text-value);
+    padding: 12px;
+    background: var(--field-bg);
+    border-radius: 2px;
+}
+
+.sbplus-settings-alert-row {
+    cursor: pointer;
+}
+
+.sbplus-settings-alert-row:hover {
+    background: var(--field-bg-hover);
+}
+
+.sbplus-settings-alert-row.disabled .sbplus-settings-alert-main {
+    opacity: 0.5;
+}
+
+.sbplus-settings-alert-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.sbplus-settings-alert-name,
+.sbplus-settings-alert-meta,
+.sbplus-settings-alert-fired {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sbplus-settings-alert-name {
+    color: var(--text-label);
+    font-size: 14px;
+}
+
+.sbplus-settings-alert-meta {
+    color: var(--text-value);
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.sbplus-settings-alert-fired {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+/* #endregion */

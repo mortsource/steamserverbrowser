@@ -1,0 +1,36 @@
+{
+    "name": "serverbrowserplus",
+    "version": "1.0.0",
+    "description": "Enhanced server browser functionality by mortsource",
+    "type": "module",
+    "main": "./frontend/index.tsx",
+    "scripts": {
+        "dev": "millennium-ttc --build dev",
+        "build": "millennium-ttc --build prod",
+        "build-and-move": "millennium-ttc --build prod && (if not exist \"C:\\Program Files (x86)\\Steam\\millennium\\plugins\\serverbrowserplus\\.millennium\\Dist\" mkdir \"C:\\Program Files (x86)\\Steam\\millennium\\plugins\\serverbrowserplus\\.millennium\\Dist\") && copy /Y .millennium\\Dist\\index.js \"C:\\Program Files (x86)\\Steam\\millennium\\plugins\\serverbrowserplus\\.millennium\\Dist\\index.js\""
+    },
+    "dependencies": {
+        "@primer/octicons": "^19.33.0",
+        "@steambrew/api": "^5.5.3",
+        "@steambrew/client": "^5.5.3",
+        "@steambrew/ttc": "^3.3.7",
+        "@steambrew/webkit": "^5.5.3",
+        "buffer": "^6.0.3",
+        "flag-icons": "^7.5.0",
+        "maplibre-gl": "^6.12.0",
+        "mmdb-lib": "^3.0.3",
+        "react": "^19.1.12"
+    },
+    "devDependencies": {
+        "@babel/preset-env": "^7.28.3",
+        "@babel/preset-react": "^7.27.1",
+        "@babel/traverse": "^7.28.3",
+        "@types/react": "^19.1.12",
+        "@types/react-dom": "^19.1.9",
+        "@types/webpack": "^5.28.5"
+    },
+    "allowScripts": {
+        "esbuild@0.28.2": true,
+        "@parcel/watcher@2.6.0": true
+    }
+}

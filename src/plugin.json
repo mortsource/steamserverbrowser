@@ -1,0 +1,9 @@
+{
+    "$schema": "https://raw.githubusercontent.com/SteamClientHomebrew/Millennium/main/src/sys/plugin-schema.json",
+    "name": "serverbrowserplus",
+    "common_name": "ServerBrowserPlus",
+    "description": "Enhanced functionality for native Steam server browser by mortsource",
+    "version": "1.0.0",
+    "useBackend": false,
+    "frontend": "frontend"
+}
